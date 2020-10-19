@@ -1,92 +1,80 @@
 (*
 Simple Lambda Calculus Interpreter using Ocaml
 Year 4 Capstone Project
-
-Author: Tram Hoang
 *)
 
-(* Variable *)
 type var = string
 
 (* Binary Operation *)
 type binop = 
   | Add
   | Sub
-  | Mul
+  | Mul 
   | Div
 
-(* Terms *)
-type term = 
-  | Const of int
-  | Var of var
-  | Binop of binop * term * term
-  | Lam of var * term
-  | App of term * term
+(* Expressions *)
 
-(* In prof notes *)
-(* type exp = 
- *   | Var of var
- *   | Fun of var * exp
- *   | App of exp * exp *)
+type exp = 
+  | Int of int
+  | Var of var
+  | Fun of var * exp
+  | App of exp * exp
+  | Binop of binop * exp * exp
+
+(* Functions are values *)
+type value = 
+  | IntV of int
+  | FunV of var * exp
+
+(* Values are subset of expressions *)
+let exp_of_values (v:value): exp =
+  match v with
+  | IntV e -> Int e
+  | FunV (v, e) -> Fun (v, e)
 
 (* Find free variables *)
-let rec find_var (t: term) : string list = 
-  match t with
+let rec find_var (exp: exp) : var list =
+  match exp with
+  | Int _ -> []
   | Var x -> [x]
-  | Lam (x, y) -> find_var y |> List.filter (fun z -> x <> z)
-  | App (t1, t2)
-  | Binop (_, t1, t2) -> (find_var t1) @ (find_var t2)
-  | _ -> []
+  | Fun (x, e) -> find_var e |> List.filter (fun z -> x <> z) (* x is bound and is not free *)
+  | App (e1, e2) -> (find_var e1) @ (find_var e2)
+  | Binop (_, e1, e2) -> (find_var e1) @ (find_var e2)
 
-let unique = ref 0
+(* Substitution in exp of t1 with t2 *)
 
-(* Variable substitution (t1 with t2) *)
-let rec sub (exp: term) (t1: var) (t2: term): term = 
+let rec subst (exp: exp) (t1: var) (t2: value) : exp = 
   match exp with
-  | Const _ -> exp
-  | Var x -> if x = t1 then t2 else exp
-  | App (v1, v2) -> App (sub v1 t1 t2, sub v2 t1 t2)
-  | Lam (v, term) -> if v = t1
-                       then exp (* Don't change *)
-                       else 
-                         if not (List.mem v (find_var t2)) (*We need to convert var*)
-                         then Lam (v, sub term t1 t2)
-                         else 
-                           let v' = v ^ (string_of_int !unique) in
-                           incr unique;
-                           let t' = sub term v (Var (v')) in
-                           Lam (v', sub t' t1 t2)
-  | Binop (b, v1, v2) -> Binop (b, sub v1 t1 t2, sub v2 t1 t2)
+  | Int _ -> exp
+  | Var x -> if x = t1 then exp_of_values t2 else Var x
+  | Fun (x, e) -> if x = t1 then exp (* x is bound by Fun *)
+                  else Fun (x, subst e t1 t2)
+  | Binop (b, e1, e2) -> Binop (b, subst e1 t1 t2, subst e2 t1 t2) 
+  | App (e1, e2) -> App (subst e1 t1 t2, subst e2 t1 t2)
 
-(*Beta Reduction*)
-let rec reduce (exp: term) : term = 
-  match exp with
-  | App (e1, e2) ->
-     begin
-       match e1 with
-       | Lam (x, e) -> sub e x e2
-       | _ -> 
-          let re1 = reduce e1 in
-          if re1 != e1
-          then App (re1, e2)
-          else App (e1, reduce e2)
-     end
-  | Lam (x, e) -> Lam (x, reduce e)
-  | _ -> exp
 
-(*Evaluate to int*)
-let rec eval (exp: term) : int =
-  let rexp = reduce exp in
-  match rexp with
-  | Const x -> x
+(* Substitution based evaluator *)
+let rec eval (e: exp) : value =
+  match e with
+  | Int i -> IntV i
   | Binop (b, e1, e2) ->
      begin
-     let re1 = reduce e1 in
-     let re2 = reduce e2 in 
-     match b with
-       | Add -> (eval re1) + (eval re2)
-       | Sub -> (eval re1) - (eval re2)
-       | Mul -> (eval re1) * (eval re2)
-       | Div -> (eval re1) / (eval re2)
+       match (eval e1, eval e2) with
+       | (IntV i1, IntV i2) ->
+          begin
+            match b with
+            | Add -> IntV (i1 + i2)
+            | Sub -> IntV (i1 - i2)
+            | Mul -> IntV (i1 * i2)
+            | Div -> IntV (i1 / i2)
+          end
+       | _ -> failwith "e1 and/or e2 are not integers"
      end
-  | _ -> failwith "Can't be evaluated"
+  | Var _ -> failwith "eval free variable"
+  | Fun (arg, body) -> FunV (arg, body)
+  | App (e1, e2) ->
+     begin
+       match (eval e1, eval e2) with
+       | (FunV (x, body), v) -> eval (subst body x v)
+       | _ -> failwith "tried to apply non-function"
+     end
