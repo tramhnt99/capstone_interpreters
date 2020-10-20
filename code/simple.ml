@@ -1,6 +1,7 @@
 (*
 Simple Lambda Calculus Interpreter using Ocaml
 Year 4 Capstone Project
+Tram Hoang
 *)
 
 type var = string
@@ -13,7 +14,6 @@ type binop =
   | Div
 
 (* Expressions *)
-
 type exp = 
   | Int of int
   | Var of var
