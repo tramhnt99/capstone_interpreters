@@ -15,7 +15,6 @@ type binop =
   | Div
 
 (* Expressions *)
-
 type exp = 
   | Int of int
   | Var of var
@@ -29,10 +28,6 @@ type value =
   | IntV of int
   | FunV of var * exp
   | ErrorV of string
-
-(* Context that stores whether there has been an error and the error message *)
-type context = 
-  | Error of bool * string
 
 (* Values are subset of expressions *)
 let exp_of_values (v:value): exp =
