@@ -5,12 +5,7 @@ Tram Hoang
 *)
 
 
-(*Monad signature*)
-(* module type Monad = sig
- *   type 'a t
- *   val return : 'a -> 'a t
- *   val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
- * end *)
+  (*TODO: Using the monad, log every function is passes *)
 
 (*Lambda Calculus Monad for propagating errors *)
 module LambdaError = struct
@@ -36,11 +31,13 @@ module LambdaError = struct
     | IntV of int
     | FunV of var * exp
 
-  type 'a t = 'a option * string
+  (* First is the expression/value, then string for an error, then string for functions*)
+  type 'a t = 'a option * string * string
             
   let return x = (Some x, "")
 
-  let (>>=) (m: 'a t) (f: 'a -> 'b t) : 'b t = 
+  let (>>=) (m: 'a option * string) 
+        (f: 'a -> 'b option * string) : 'b option * string = 
     match m with
     | (None, s) -> (None, s)
     | (Some e, s) -> 
@@ -52,8 +49,6 @@ module LambdaError = struct
     match v with
     | IntV e -> Int e
     | FunV (v, e) -> Fun (v, e)
-
-  (*TODO: Using the monad, log every function is passes *)
 
   (* Substitution in exp of t1 with t2 *)
   let rec subst (t1: var) (t2: value) (exp: exp) : exp option * string = 
