@@ -61,7 +61,8 @@ module LambdaErrorFunction2 = struct
     | Int i -> "Int " ^ (string_of_int i)
     | Var var -> "Var " ^ var
     | Fun (var, exp) -> "Fun " ^ var ^ (string_of_exp exp)
-    | App (exp1, exp2) -> "App " ^ (string_of_exp exp) ^ ", " ^ (string_of_exp exp)
+    | App (exp1, exp2) -> "App " ^ (string_of_exp exp1) ^ 
+                            ", " ^ (string_of_exp exp2)
     | Binop (b, exp1, exp2) -> "Binop " ^ 
                                (string_of_binop b) ^ ", " ^
                                  (string_of_exp exp1) ^ ", " ^
@@ -89,7 +90,7 @@ module LambdaErrorFunction2 = struct
        return (App (lhs, rhs)) name
 
   let rec eval (e: exp) : value t = 
-    let name = " eval " in
+    let name = "eval " ^ (string_of_exp e) in
     match e with
     | Int i -> return (IntV i) name
     | Binop (b, e1, e2) ->
