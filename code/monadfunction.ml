@@ -4,9 +4,6 @@ Year 4 Capstone Project
 Tram Hoang
 *)
 
-
-  (*TODO: Using the monad, log every function is passes *)
-
 (*Lambda Calculus Monad for propagating errors *)
 module LambdaErrorFunction = struct
   type var = string
